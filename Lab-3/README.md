@@ -154,7 +154,7 @@ PING 172.16.1.2 (172.16.1.2): 56 data bytes
 5 packets transmitted, 5 packets received, 0.00% packet loss
 round-trip min/avg/max = 6.046/9.207/18.314 ms
 ```
-Проверим доступность с VPC4:<br>
+Проверим доступность VPC1 и LEAF-1 с VPC4:<br>
 ```
 VPC4> ping 172.16.1.2
 
