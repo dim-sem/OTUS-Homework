@@ -59,31 +59,13 @@ IS-IS Level-2 Link State Database
   LEAF-2.00-00        * 0x0000000E   0xA780    1077       0/0/0/3
   LEAF-3.00-00          0x00000027   0x61D1    1001       0/0/0/3
 
-  LEAF-2# sh isis adj
+LEAF-2# sh isis adj
 IS-IS process: UNDERLAY VRF: default
 IS-IS adjacency database:
 Legend: '!': No AF level connectivity in given topology
 System ID       SNPA            Level  State  Hold Time  Interface
 SPINE-1         N/A             1-2    UP     00:00:24   Ethernet1/1
 SPINE-2         N/A             1-2    UP     00:00:29   Ethernet1/2
-
-LEAF-2# sh isis data
-IS-IS Process: UNDERLAY LSP database VRF: default
-IS-IS Level-1 Link State Database
-  LSPID                 Seq Number   Checksum  Lifetime   A/P/O/T
-  SPINE-1.00-00         0x00000008   0xCE2C    1051       0/0/0/3
-  SPINE-2.00-00         0x0000001F   0x4185    1092       0/0/0/3
-  LEAF-1.00-00          0x00000011   0xAC92    743        0/0/0/3
-  LEAF-2.00-00        * 0x00000010   0xA382    870        0/0/0/3
-  LEAF-3.00-00          0x0000000F   0x91B9    795        0/0/0/3
-
-IS-IS Level-2 Link State Database
-  LSPID                 Seq Number   Checksum  Lifetime   A/P/O/T
-  SPINE-1.00-00         0x00000028   0x8E4C    1071       0/0/0/3
-  SPINE-2.00-00         0x0000001C   0x4782    1131       0/0/0/3
-  LEAF-1.00-00          0x0000000F   0xB090    743        0/0/0/3
-  LEAF-2.00-00        * 0x0000000E   0xA780    870        0/0/0/3
-  LEAF-3.00-00          0x00000027   0x61D1    795        0/0/0/3
 
 LEAF-2# sh ip rou isis
 IP Route Table for VRF "default"
