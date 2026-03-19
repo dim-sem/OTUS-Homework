@@ -175,3 +175,107 @@ VPC4> ping 172.16.1.1
 VPC4>
 ```
 Вывод: Underlay сеть на IS-IS построена, маршрутизация работает. Конфиги устройств приложены в файле lab-3.zip.
+
+UPD: Учтем пожелания руководителя курса и изменим конфигурацию: будем использовать только level-2 и добавим аутентификацию.
+```
+key chain ISIS
+  key 100
+    key-string 7 070632455d360a0014000e18
+    cryptographic-algorithm MD5
+```
+Добавим на всех нодах key chain.<br>
+На интерфейсах, обменивающихся пакетами IS-IS и для процесса IS-IS добавим настройки аутентификации:<br>
+```
+!
+interface Eth1/1
+  isis authentication-type md5
+  isis authentication key-chain ISIS
+!
+router isis UNDERLAY
+! ---- use level-2 only ------
+is-type level-2
+! --- authentication  ----
+auuthentication-type md5
+authentication key-chain ISIS level-2
+!
+```
+Что измениось? <br>
+```
+SPINE-2# sh isis data
+IS-IS Process: UNDERLAY LSP database VRF: default
+IS-IS Level-1 Link State Database
+  LSPID                 Seq Number   Checksum  Lifetime   A/P/O/T
+
+IS-IS Level-2 Link State Database
+  LSPID                 Seq Number   Checksum  Lifetime   A/P/O/T
+  SPINE-1.00-00         0x0000003C   0x75B6    1128       0/0/0/3
+  SPINE-2.00-00       * 0x00000036   0x8ABF    1100       0/0/0/3
+  LEAF-1.00-00          0x0000003E   0x28C5    897        0/0/0/3
+  LEAF-2.00-00          0x00000031   0xA53B    939        0/0/0/3
+  LEAF-3.00-00          0x0000002E   0x1E4F    1102       0/0/0/3
+```
+Как видим в LSDB присутствуют только level-2 PDU, как мы и настраивали в протоколе маршрутизации на нодах.
+```
+SPINE-2#
+
+SPINE-2#sh isis prot
+<---skipped--->
+  Topology : 2
+  Address family IPv4 unicast :
+    Number of interface : 0
+    Distance : 115
+    Default-information not originated
+  Address family IPv6 unicast :
+    Number of interface : 0
+    Distance : 115
+    Default-information not originated
+  Level1
+  No auth type
+  Auth check set
+  Level2
+  Auth type:MD5
+Auth keychain is ISIS
+  Auth check set
+<---skipped--->
+
+SPINE-1# sh isis top
+IS-IS process: UNDERLAY
+VRF: default
+Topology ID: 0
+
+IS-IS Level-1 IS routing table
+
+IS-IS Level-2 IS routing table
+SPINE-2.00, Instance 0x00000023
+   *via LEAF-1, Ethernet1/1, metric 80
+   *via LEAF-2, Ethernet1/2, metric 80
+   *via LEAF-3, Ethernet1/3, metric 80
+LEAF-1.00, Instance 0x00000023
+   *via LEAF-1, Ethernet1/1, metric 40
+LEAF-2.00, Instance 0x00000023
+   *via LEAF-2, Ethernet1/2, metric 40
+LEAF-3.00, Instance 0x00000023
+   *via LEAF-3, Ethernet1/3, metric 40
+```
+Ноды аутентифицируются друг с другом и при несовпадении ключей либо отсутствии/ошибки в настройке авторизации - отношения соседства не происходит. Совершим "диверсию" - изменим настройки в протоколе маршрутизации и на одном из интерфейсов на LEAF-3.
+```
+LEAF-3# sh isis adj
+IS-IS process: UNDERLAY VRF: default
+IS-IS adjacency database:
+Legend: '!': No AF level connectivity in given topology
+System ID       SNPA            Level  State  Hold Time  Interface
+0100.0000.1000  N/A             2      UP     00:00:27   Ethernet1/1
+
+LEAF-3#
+LEAF-3# sh isis top
+IS-IS process: UNDERLAY
+VRF: default
+Topology ID: 0
+
+IS-IS Level-1 IS routing table
+
+IS-IS Level-2 IS routing table
+```
+Неправильно написали имя key chain на LEAF-3 в настройках протокола и на интерфейсе Eth1/2 и всё поломалось...<br>
+
+Обновленные конфиги устройств добавлены в файле lab3-auth.zip
