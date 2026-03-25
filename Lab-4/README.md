@@ -128,7 +128,7 @@ IP Route Table for VRF "default"
     *via 10.2.1.0, [200/0], 02:34:05, bgp-65500, internal, tag 65500
     *via 10.2.2.0, [200/0], 02:33:52, bgp-65500, internal, tag 65500
 
-Видим, что Loopback интерейсы LEAF-2 и LEAF-3 должны быть доступны. 
+Видим, что Loopback интерфейсы LEAF-2 и LEAF-3 должны быть доступны. 
 Проверим:
 LEAF-1# ping 10.1.1.3
 PING 10.1.1.3 (10.1.1.3): 56 data bytes
