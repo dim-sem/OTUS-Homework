@@ -139,7 +139,7 @@ Request 0 timed out
 ), ICMP_ECHO, tos/dscp=0x0/0x0, ip_len=84, id=0000, ttl=255
 Request 1 timed out
 
-Не работает. Т.к. мы анонсируем только Lo1, а в двнном случае SRC interface для ping - eth1/1 (IP 10.2.2.1), о котором LEAF-3 ничего не знает.
+Не работает. Т.к. мы анонсируем только Lo1, а в данном случае SRC interface для ping - eth1/1 (IP 10.2.2.1), о котором LEAF-3 ничего не знает.
 А вот так будет работать:
 LEAF-1# ping 10.1.1.3 source 10.1.1.1
 PING 10.1.1.3 (10.1.1.3) from 10.1.1.1: 56 data bytes
@@ -157,7 +157,7 @@ router bgp 65500
   address-family ipv4 unicast
    network 172.16.1.0/24
 
-То эта сеть юудет доступна, например, с LEAF-3:
+То эта сеть будет доступна, например, с LEAF-3:
 LEAF-3# ping 172.16.1.2 source 10.1.1.3
 PING 172.16.1.2 (172.16.1.2) from 10.1.1.3: 56 data bytes
 64 bytes from 172.16.1.2: icmp_seq=0 ttl=61 time=6.688 ms
@@ -165,4 +165,98 @@ PING 172.16.1.2 (172.16.1.2) from 10.1.1.3: 56 data bytes
 64 bytes from 172.16.1.2: icmp_seq=2 ttl=61 time=6.263 ms
 64 bytes from 172.16.1.2: icmp_seq=3 ttl=61 time=5.916 ms
 64 bytes from 172.16.1.2: icmp_seq=4 ttl=61 time=8.004 ms
+````
+Вывод: всё работает, но помним, что
+1. сети нужно анонсировать, если хотим, чтобы они были доступны.
+2. поскольку увеличение количества SPINE и LEAF приводит к почти квадратичному увеличению соседств, нужно использовать Route Reflector, в качестве которых будут выступать SPINE.
 
+Переделаем нашу топологию на использование eBGP. В данном случае у каждого LEAF будет своя AS, а вот все SPINE в POD будут находитьс в общей для них AS.
+![LAP-topology](https://github.com/dim-sem/OTUS-Homework/blob/main/Lab-4/lab-4-ebgp.png "Topology")<br>
+На SPINE настроим т.о. (на примере SPINE-1):
+````
+route-map RM_LEAVES_BGP permit 10
+  match as-number 65551-65590
+!
+router bgp 65500
+  router-id 10.0.1.0
+  reconnect-interval 10
+  log-neighbor-changes 
+  address-family ipv4 unicast
+    maximum-paths 10
+ neighbor 10.2.1.0/24 remote-as route-map RM_LEAVES_BGP
+   bfd
+   address-family ipv4 unicast
+!
+````
+На LEAF-s (на примере LEAF-1):
+```
+router bgp 65551
+  router-id 10.1.1.1
+  reconnect-interval 10
+  log-neighbor-changes
+  address-family ipv4 unicast
+    redistribute direct route-map CONNECTED
+    maximum-paths 10
+  template peer SPINES
+    bfd
+    remote-as 65500
+    timers 3 9
+    address-family ipv4 unicast
+  neighbor 10.2.1.0
+    inherit peer SPINES
+  neighbor 10.2.2.0
+    inherit peer SPINES
+```
+Проверим работоспособность с LEAF-1:
+```
+LEAF-1# sh bgp sess
+Total peers 2, established peers 2
+ASN 65551
+VRF default, local ASN 65551
+peers 2, established peers 2, local router-id 10.1.1.1
+State: I-Idle, A-Active, O-Open, E-Established, C-Closing, S-Shutdown
+
+Neighbor        ASN    Flaps LastUpDn|LastRead|LastWrit St Port(L/R)  Notif(S/R)
+10.2.1.0        65500 0     00:03:46|0.326308|0.386244 E   46442/179        0/0
+10.2.2.0        65500 0     00:02:14|00:00:01|00:00:01 E   49435/179        0/52
+
+LEAF-1# sh ip rou bgp
+IP Route Table for VRF "default"
+'*' denotes best ucast next-hop
+'**' denotes best mcast next-hop
+'[x/y]' denotes [preference/metric]
+'%<string>' in via output denotes VRF <string>
+
+10.1.1.2/32, ubest/mbest: 2/0
+    *via 10.2.1.0, [20/0], 00:04:44, bgp-65551, external, tag 65500
+    *via 10.2.2.0, [20/0], 00:03:12, bgp-65551, external, tag 65500
+10.1.1.3/32, ubest/mbest: 2/0
+    *via 10.2.1.0, [20/0], 00:04:45, bgp-65551, external, tag 65500
+    *via 10.2.2.0, [20/0], 00:03:12, bgp-65551, external, tag 65500
+
+LEAF-1# sh ip bgp summ
+BGP summary information for VRF default, address family IPv4 Unicast
+BGP router identifier 10.1.1.1, local AS number 65551
+BGP table version is 9, IPv4 Unicast config peers 2, capable peers 2
+3 network entries and 5 paths using 972 bytes of memory
+BGP attribute entries [3/516], BGP AS path entries [2/20]
+BGP community entries [0/0], BGP clusterlist entries [0/0]
+
+Neighbor        V    AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
+10.2.1.0        4 65500     109     155        9    0    0 00:05:05 2
+10.2.2.0        4 65500     182     180        9    0    0 00:03:33 2
+
+LEAF-1# ping 10.1.1.3 source 10.1.1.1
+PING 10.1.1.3 (10.1.1.3) from 10.1.1.1: 56 data bytes
+64 bytes from 10.1.1.3: icmp_seq=0 ttl=253 time=5.548 ms
+64 bytes from 10.1.1.3: icmp_seq=1 ttl=253 time=5.734 ms
+64 bytes from 10.1.1.3: icmp_seq=2 ttl=253 time=5.328 ms
+64 bytes from 10.1.1.3: icmp_seq=3 ttl=253 time=5.92 ms
+64 bytes from 10.1.1.3: icmp_seq=4 ttl=253 time=5.014 ms
+
+--- 10.1.1.3 ping statistics ---
+5 packets transmitted, 5 packets received, 0.00% packet loss
+round-trip min/avg/max = 5.014/5.508/5.92 ms
+```
+
+Вывод: всё работает, анонсоруемые сети доступны. Настройка проще, чем iBGP, но нужно продумать возможность масштабирования.
