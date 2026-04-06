@@ -201,5 +201,6 @@ Route Distinguisher: 10.1.1.1:3    (L3VNI 1000999)
 LEAF-1#
 ```
 В BGP таблице видим по 2 Type-2 маршрута, один только с MAC, а вот второй - MAC-IP, т.е. фактически - ARP-запись.
-Вывод - работает!<br>
+Вывод - работает!!!<br>
 P.S. Не получилось проверить ARP supression, требует ввести команду hardware access-list tcam region arp-ether size double-wide, но она выдает ошибку. Пока нет понимания, как это побороть.
+  
