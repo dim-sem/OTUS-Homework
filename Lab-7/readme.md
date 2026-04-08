@@ -189,7 +189,7 @@ PING 172.16.20.100 (172.16.20.100): 56 data bytes
 5 packets transmitted, 5 packets received, 0.00% packet loss
 round-trip min/avg/max = 9.17/11.597/15.817 ms
 ```
-Помотрим, что ннам скажет sh nve peers:
+Помотрим, что нам скажет sh nve peers:
 ```
 LEAF-4# sh nve peers
 Interface Peer-IP                                 State LearnType Uptime   Route
@@ -230,3 +230,4 @@ Route Distinguisher: 10.1.1.4:3    (VRF L3VNI_TEST)
 * i172.16.20.11/32    10.1.1.101                        100          0 i
 *>i                   10.1.1.101                        100          0 i
 ```
+Вывод: vPC работает, но нужно настраиват дополнительный IP на loopback, который привязан к nve интерфейсу.
